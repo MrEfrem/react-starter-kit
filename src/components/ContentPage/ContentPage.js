@@ -10,21 +10,20 @@
 
 import React from 'react';
 
-var ContentPage = React.createClass({
+export default React.createClass({
 
-  propTypes: {
-    body: React.PropTypes.string.isRequired
-  },
+    propTypes: {
+        body: React.PropTypes.string.isRequired
+    },
 
-  render() {
-    var { className, title, body, other } = this.props;
+    render() {
+        var { className, title, body, other } = this.props;
 
-    /* jshint ignore:start */
-    return <div className={'ContentPage ' + className}
-      dangerouslySetInnerHTML={{__html: body}} />;
-    /* jshint ignore:end */
-  }
+        /* jshint ignore:start */
+        return <div className={'ContentPage ' + className}
+            dangerouslySetInnerHTML={{__html: body}} />;
+        /* jshint ignore:end */
+    }
 
 });
 
-module.exports = ContentPage;

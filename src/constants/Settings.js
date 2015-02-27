@@ -6,16 +6,16 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
-module.exports = {
+export default {
 
-  defaults: {
+    defaults: {
 
-    page: {
-      title: 'React.js Starter Kit',
-      description: 'A skeleton for an isomorphic web application (SPA) built with React.js and Flux',
-      keywords: null
+        page: {
+            title: 'React.js Starter Kit',
+            description: 'A skeleton for an isomorphic web application (SPA) built with React.js and Flux',
+            keywords: null
 
+        }
     }
-  }
 
 };
