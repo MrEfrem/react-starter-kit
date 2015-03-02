@@ -8,6 +8,8 @@
 
 'use strict';
 
+import 'babel/polyfill';
+
 import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
@@ -16,6 +18,9 @@ import React from 'react';
 import Dispatcher from './core/Dispatcher';
 import ActionTypes from './constants/ActionTypes';
 import AppStore from './stores/AppStore';
+import AppElem from './components/App';
+import fm from 'front-matter';
+import assign from 'react/lib/Object.assign';
 
 var server = express();
 
@@ -25,10 +30,13 @@ server.use(express.static(path.join(__dirname)));
 //
 // Page API
 // -----------------------------------------------------------------------------
-server.get('/api/page/*', function(req, res) {
-  var urlPath = req.path.substr(9);
-  var page = AppStore.getPage(urlPath);
-  res.send(page);
+server.get('/api/page/*', function (req, res) {
+    var urlPath = req.path.substr(9);
+    new Promise(resolve => {
+        getPage(urlPath, resolve);
+    }).then(page => {
+            res.send(page);
+        });
 });
 
 //
@@ -36,64 +44,75 @@ server.get('/api/page/*', function(req, res) {
 // -----------------------------------------------------------------------------
 
 // The top-level React component + HTML template for it
-var App = React.createFactory(require('./components/App'));
+var App = React.createFactory(AppElem);
 var templateFile = path.join(__dirname, 'templates/index.html');
 var template = _.template(fs.readFileSync(templateFile, 'utf8'));
 
-server.get('*', function(req, res) {
-  var data = {description: ''};
-  var app = new App({
-    path: req.path,
-    onSetTitle: function(title) { data.title = title; },
-    onSetMeta: function(name, content) { data[name] = content; },
-    onPageNotFound: function() { res.status(404); }
-  });
-  data.body = React.renderToString(app);
-  var html = template(data);
-  res.send(html);
-});
-
-// Load pages from the `/src/content/` folder into the AppStore
-(function() {
-  var assign = require('react/lib/Object.assign');
-  var fm = require('front-matter');
-  var jade = require('jade');
-  var sourceDir = path.join(__dirname, './content');
-  var getFiles = function(dir) {
-    var pages = [];
-    fs.readdirSync(dir).forEach(function(file) {
-      var stat = fs.statSync(path.join(dir, file));
-      if (stat && stat.isDirectory()) {
-        pages = pages.concat(getFiles(file));
-      } else {
-        // Convert the file to a Page object
-        var filename = path.join(dir, file);
-        var url = filename.
-          substr(sourceDir.length, filename.length - sourceDir.length - 5)
-          .replace('\\', '/');
-        if (url.indexOf('/index', url.length - 6) !== -1) {
-          url = url.substr(0, url.length - (url.length > 6 ? 6 : 5));
-        }
-        var source = fs.readFileSync(filename, 'utf8');
-        var content = fm(source);
-        var html = jade.render(content.body, null, '  ');
-        var page = assign({}, {path: url, body: html}, content.attributes);
-        Dispatcher.handleServerAction({
-          actionType: ActionTypes.LOAD_PAGE,
-          path: url,
-          page: page
+server.get('*', function (req, res) {
+    var data = {description: ''};
+    new Promise(resolve => {
+        getPage(req.path, resolve);
+    }).then(page => {
+            var app = new App({
+                page: page,
+                onSetTitle: function (title) {
+                    data.title = title;
+                },
+                onSetMeta: function (name, content) {
+                    data[name] = content;
+                },
+                onPageNotFound: function () {
+                    res.status(404);
+                }
+            });
+            data.body = React.renderToString(app);
+            var html = template(data);
+            res.send(html);
         });
-      }
-    });
-    return pages;
-  };
-  return getFiles(sourceDir);
-})();
-
-server.listen(server.get('port'), function() {
-  if (process.send) {
-    process.send('online');
-  } else {
-    console.log('The server is running at http://localhost:' + server.get('port'));
-  }
 });
+
+server.listen(server.get('port'), function () {
+    if (process.send) {
+        process.send('online');
+    } else {
+        console.log('The server is running at http://localhost:' + server.get('port'));
+    }
+});
+
+//
+// Get page
+// -----------------------------------------------------------------------------
+function getPage(url, cb) {
+    var page = AppStore.getPage(url);
+    if (undefined == page.path) {
+        var pagePath = url;
+        if ('/' == pagePath) {
+            pagePath += 'index';
+        }
+        pagePath += '.html';
+        var fileName = path.join(__dirname, './content', pagePath);
+        new Promise((resolve, reject) => {
+            fs.readFile(fileName, 'utf8', (err, data) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(data);
+                }
+            });
+        }).then(source => {
+                var content = fm(source);
+                var page = assign({}, {path: url, body: content.body}, content.attributes);
+                cb(page);
+                Dispatcher.handleServerAction({
+                    actionType: ActionTypes.LOAD_PAGE, path: url, page: page
+                });
+            }).catch(() => {
+                cb({
+                    title: 'Page Not Found',
+                    type: 'notfound'
+                });
+            });
+    } else {
+        cb(page);
+    }
+}
