@@ -54,7 +54,7 @@ var config = {
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        loader: 'jshint'
+        loader: 'eslint-loader'
       }
     ],
 
@@ -65,7 +65,8 @@ var config = {
       },
       {
         test: /\.less$/,
-        loader: 'style-loader!css-loader!' + AUTOPREFIXER_LOADER + '!less-loader'
+        loader: 'style-loader!css-loader!' + AUTOPREFIXER_LOADER +
+                '!less-loader'
       },
       {
         test: /\.gif/,
@@ -139,7 +140,7 @@ var serverConfig = _.merge({}, config, {
       // Remove style-loader
       return _.merge(loader, {
         loader: loader.loader = loader.loader.replace('style-loader!', '')
-      })
+      });
     })
   }
 });

@@ -12,16 +12,13 @@ import React from 'react';
 
 export default React.createClass({
 
-    propTypes: {
-        body: React.PropTypes.string.isRequired
-    },
+  propTypes: {
+    body: React.PropTypes.string.isRequired
+  },
 
-    render() {
-        /* jshint ignore:start */
-        return <div className="ContentPage"
-            dangerouslySetInnerHTML={{__html: this.props.body}} />;
-        /* jshint ignore:end */
-    }
+  render() {
+    return <div className="ContentPage"
+      dangerouslySetInnerHTML={{__html: this.props.body}} />;
+  }
 
 });
-
